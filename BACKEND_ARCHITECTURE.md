@@ -51,11 +51,11 @@
 
 ### Visitor Resumability
 - **Primary**: On first message, generate `visitorId` (UUID v4) and set as httpOnly, sameSite=strict cookie (secure in prod). Subsequent posts match by `visitorId`.
-- **Fallback**: Return `convoId` and a signed `resumeToken`, expose `resumeUrl` like `/slug/thread/:convoId?token=xyz`. Works cross-device without cookies.
+- **Frontend token**: Return `convoId` and a signed, short-lived `resumeToken` plus `resumeUrl` (`/slug/thread/:convoId?token=...`). The client uses this token for resume UX. Do not expose raw identifiers.
 - **Routes**
-  - Public GET `/messages/:slug/thread/:convoId` → sanitized thread
+  - Public GET `/messages/:slug/thread/:convoId` → sanitized thread (supports `?token=&cursor=&before=&limit=`)
   - Public POST `/messages/:slug/thread/:convoId/reply` → append visitor reply
-  - Token handling: if `token` present, validate signature (HMAC) against convo; else fall back to `visitorId` cookie.
+  - Token handling: validate HMAC-signed `resumeToken` server-side; otherwise require matching httpOnly `visitorId`.
 
 ### Endpoints
 - **Public**
@@ -111,7 +111,7 @@
 
 ### Pagination & Indexing
 - Conversations: cursor or page+limit; sort by `lastMessageAt` desc.
-- Messages: offset/limit within a convo (newest last). Apply to visitor thread fetch too.
+- Messages: cursor-based via `before=<timestamp|messageId>` + `limit`; newest last; fetch older when scrolling up.
 - Indexes as listed to keep lookups O(1)-ish.
 
 ### Notifications

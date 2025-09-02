@@ -140,7 +140,7 @@ export class MessagesService {
     }
   }
 
-  async getVisitorThread(slug: string, convoId: string, token: string | undefined, visitorIdFromCookie: string | undefined, cursor?: number, limit: number = 50) {
+  async getVisitorThread(slug: string, convoId: string, token: string | undefined, visitorIdFromCookie: string | undefined, cursor?: number, limit: number = 50, before?: string) {
     // Validate token if provided; else require matching visitorId cookie
     if (token) {
       this.verifyResumeToken(token, slug, convoId);
@@ -151,11 +151,17 @@ export class MessagesService {
     if (!token && visitorIdFromCookie && convo.visitorInfo?.visitorId !== visitorIdFromCookie) {
       throw new UnauthorizedException('Not your conversation');
     }
-    const messages = convo.messages || [];
-    const start = Math.max(0, (cursor ?? Math.max(messages.length - limit, 0)));
-    const slice = messages.slice(start, start + limit);
+    const messages = (convo.messages || []) as Array<{ timestamp: Date }>;
+    let filtered = messages;
+    if (before) {
+      const beforeTs = new Date(before).getTime();
+      filtered = messages.filter((m: any) => new Date(m.timestamp).getTime() < beforeTs);
+    }
+    const start = Math.max(0, (cursor ?? Math.max(filtered.length - limit, 0)));
+    const slice = filtered.slice(start, start + limit);
     const nextCursor = start > 0 ? Math.max(start - limit, 0) : null;
-    return { convoId, messages: slice, nextCursor };
+    const nextBefore = slice.length ? new Date(slice[0].timestamp).toISOString() : null;
+    return { convoId, messages: slice, nextCursor, nextBefore };
   }
 
   async addVisitorReply(slug: string, convoId: string, content: string, token: string | undefined, visitorIdFromCookie: string | undefined) {

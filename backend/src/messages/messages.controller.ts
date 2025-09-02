@@ -5,6 +5,7 @@ import { MessagesService } from './messages.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { VisitorReplyDto } from './dto/visitor-reply.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { CsrfGuard } from '../auth/csrf.guard';
 import { ManagerReplyDto } from './dto/manager-reply.dto';
 
 @Controller('messages')
@@ -36,13 +37,14 @@ export class MessagesController {
     @Param('convoId') convoId: string,
     @Query('token') token: string | undefined,
     @Query('cursor') cursor: string | undefined,
+    @Query('before') before: string | undefined,
     @Query('limit') limit: string | undefined,
     @Req() req: Request,
   ) {
     const visitorId = (req.cookies as any)?.visitorId as string | undefined;
     const parsedCursor = cursor !== undefined ? parseInt(cursor, 10) : undefined;
     const parsedLimit = limit !== undefined ? parseInt(limit, 10) : 50;
-    return this.messagesService.getVisitorThread(slug, convoId, token, visitorId, parsedCursor, parsedLimit);
+    return this.messagesService.getVisitorThread(slug, convoId, token, visitorId, parsedCursor, parsedLimit, before);
   }
 
   @Post(':slug/thread/:convoId/reply')
@@ -87,7 +89,7 @@ export class MessagesController {
   }
 
   @Post('reply/:convoId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, CsrfGuard)
   async managerReply(@Req() req: any, @Param('convoId') convoId: string, @Body() dto: ManagerReplyDto) {
     return this.messagesService.replyAsManager(req.user.userId, convoId, dto.content);
   }
