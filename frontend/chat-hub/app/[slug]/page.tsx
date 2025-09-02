@@ -17,7 +17,22 @@ async function getManagerProfile(slug: string) {
   }
 
   const data = await res.json()
-  return data
+  // Map backend fields to the shape expected by ProfileClientPage/ProfileHeader
+  return {
+    id: data.id ?? "",
+    slug: data.slug,
+    name: (data.name as string | undefined) || data.slug || "",
+    title: (data.title as string | undefined) || "",
+    bio: (data.bio as string | undefined) || "",
+    avatar: (data.photoUrl as string | undefined) || "",
+    theme: {
+      primary: (data.theme?.primary as string | undefined) || "oklch(0.588 0.15 162.145)",
+      secondary: (data.theme?.secondary as string | undefined) || "oklch(0.708 0.15 162.145)",
+      background: (data.theme?.background as string | undefined) || "oklch(1 0 0)",
+      foreground: (data.theme?.foreground as string | undefined) || "oklch(0.556 0.014 258.338)",
+    },
+    isActive: true,
+  }
 }
 
 interface PageProps {
@@ -44,7 +59,7 @@ export async function generateMetadata({ params }: PageProps) {
   }
 
   return {
-    title: `${profile.slug} | Chat Hub`,
-    description: profile.bio || `Connect with ${profile.slug}`,
+    title: `${profile.name || profile.slug} | Chat Hub`,
+    description: profile.bio || `Connect with ${profile.name || profile.slug}`,
   }
 }

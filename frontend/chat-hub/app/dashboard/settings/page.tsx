@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ThemeEditor } from "@/components/theme/theme-editor"
@@ -13,18 +13,21 @@ import { Switch } from "@/components/ui/switch"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
-import { useUpdateTheme } from "@/hooks/use-theme-api"
+import { useMyProfile, useUpdateProfile } from "@/hooks/use-manager-api"
+import { useTheme } from "@/contexts/theme-context"
 import { Settings, User, Palette, Bell, Shield, ExternalLink } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
 export default function SettingsPage() {
   const { user } = useAuth()
-  const updateTheme = useUpdateTheme()
+  const { setTheme } = useTheme()
+  const { data: me, isLoading: loadingMe } = useMyProfile()
+  const updateProfile = useUpdateProfile()
   const [profileData, setProfileData] = useState({
     name: user?.name || "",
     title: "Senior Product Manager",
-    bio: "Passionate about building products that make a difference. I love connecting with people and exploring new opportunities.",
-    avatar: "/professional-woman-headshot.png",
+    bio: "",
+    avatar: "",
     slug: user?.email?.split("@")[0] || "",
     isActive: true,
   })
@@ -43,29 +46,60 @@ export default function SettingsPage() {
   })
 
   const handleProfileSave = () => {
-    // API call would go here
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been successfully updated.",
-    })
+    // Backend accepts: { bio?, photoUrl?, theme? }
+    updateProfile.mutate(
+      {
+        bio: profileData.bio,
+        photoUrl: profileData.avatar || undefined,
+      },
+      {
+        onSuccess: () =>
+          toast({
+            title: "Profile updated",
+            description: "Your profile has been successfully updated.",
+          }),
+        onError: () =>
+          toast({
+            title: "Error",
+            description: "Failed to update profile.",
+            variant: "destructive",
+          }),
+      },
+    )
   }
 
+  // Prefill profile fields and apply theme when /users/me loads
+  useEffect(() => {
+    if (!me) return
+    setProfileData((prev) => ({
+      ...prev,
+      bio: me.bio ?? prev.bio,
+      avatar: me.photoUrl ?? prev.avatar,
+      slug: me.slug || prev.slug,
+    }))
+    if (me.theme && Object.keys(me.theme).length > 0) {
+      setTheme(me.theme)
+    }
+  }, [me, setTheme])
+
   const handleThemeSave = (theme: any) => {
-    updateTheme.mutate(theme, {
-      onSuccess: () => {
-        toast({
-          title: "Theme saved",
-          description: "Your custom theme has been applied to your profile.",
-        })
+    // Persist theme via PATCH /users/me
+    updateProfile.mutate(
+      { theme },
+      {
+        onSuccess: () =>
+          toast({
+            title: "Theme saved",
+            description: "Your custom theme has been applied to your profile.",
+          }),
+        onError: () =>
+          toast({
+            title: "Error",
+            description: "Failed to save theme. Please try again.",
+            variant: "destructive",
+          }),
       },
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to save theme. Please try again.",
-          variant: "destructive",
-        })
-      },
-    })
+    )
   }
 
   const handleNotificationsSave = () => {
@@ -186,7 +220,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <Button onClick={handleProfileSave} className="w-full">
+                <Button onClick={handleProfileSave} className="w-full" disabled={updateProfile.isPending}>
                   Save Profile
                 </Button>
               </CardContent>
@@ -291,7 +325,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <Button onClick={handleNotificationsSave} className="w-full">
+              <Button onClick={handleNotificationsSave} className="w-full" disabled={updateProfile.isPending}>
                 Save Preferences
               </Button>
             </CardContent>

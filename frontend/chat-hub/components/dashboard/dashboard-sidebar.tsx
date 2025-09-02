@@ -12,7 +12,7 @@ import { MessageSquare, Settings, BarChart3, User, LogOut, Menu, X, Home } from 
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Messages", href: "/dashboard", icon: MessageSquare },
+  { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Profile", href: "/dashboard/profile", icon: User },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },

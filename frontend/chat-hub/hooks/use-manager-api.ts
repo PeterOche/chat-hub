@@ -57,17 +57,32 @@ export function useManagerReply() {
   })
 }
 
+// Fetch current manager profile (bio, photoUrl, theme, slug)
+export function useMyProfile() {
+  return useQuery({
+    queryKey: ["profile", "me"],
+    queryFn: async () => {
+      const response = await apiClient.get("/users/me")
+      return response.data as { bio: string; photoUrl: string; theme: Record<string, string>; slug: string }
+    },
+    staleTime: 60_000,
+  })
+}
+
 // Update manager profile
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (data: {
+      // Backend-supported
+      bio?: string
+      photoUrl?: string
+      theme?: Record<string, string>
+      // Legacy optional fields (ignored by backend but allowed by type)
       name?: string
       title?: string
-      bio?: string
       avatar?: string
-      theme?: Record<string, string>
     }) => {
       const response = await apiClient.patch("/users/me", data)
       return response.data
