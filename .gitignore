@@ -1,0 +1,17 @@
+node_modules/
+**/node_modules/
+dist/
+coverage/
+.env
+.DS_Store
+
+# Node
+node_modules/
+**/node_modules/
+.npm-cache
+.tmp
+.DS_Store
+coverage/
+dist/
+.env
+.env.*
